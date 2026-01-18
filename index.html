@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schade</title>
+    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/digital-7-mono">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+        }
+        
+        body {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Digital-7 Mono', monospace;
+            background-color: #000;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            overflow: hidden;
+            position: fixed;
+        }
+        
+        #canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        .logo {
+            position: fixed;
+            top: clamp(1rem, 2vh, 2rem);
+            left: clamp(1rem, 2vw, 2rem);
+            z-index: 2;
+            font-family: 'UnifrakturMaguntia', serif;
+            font-size: clamp(1.5rem, 5vw, 3rem);
+            font-weight: normal;
+            color: rgb(0, 0, 0);
+            letter-spacing: 1px;
+        }
+        
+        .text-container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            line-height: 1.8;
+            font-size: clamp(0.9rem, 2.5vw, 1.5rem);
+            letter-spacing: clamp(1px, 0.3vw, 2px);
+            text-rendering: optimizeSpeed;
+            -webkit-font-smoothing: none;
+            -moz-osx-font-smoothing: grayscale;
+            color: rgb(15, 15, 15);
+            padding: 0 1rem;
+            max-width: 90vw;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+        
+        .text-container .letter {
+            display: inline-block;
+            white-space: pre;
+        }
+        
+        .text-container .letter:empty::before {
+            content: '\00a0';
+        }
+        
+        @media (max-width: 768px) {
+            .text-container {
+                font-size: clamp(0.75rem, 4vw, 1.2rem);
+                line-height: 1.6;
+                letter-spacing: 1px;
+                padding: 0 1.5rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .text-container {
+                font-size: clamp(0.65rem, 5vw, 1rem);
+                line-height: 1.5;
+                letter-spacing: 0.5px;
+                padding: 0 1rem;
+            }
+            
+            .logo {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                text-align: center;
+                font-size: 3rem;
+                padding: 2rem 0;
+               
+            }
+        }
+        
+        .countdown {
+            position: fixed;
+            bottom: clamp(1rem, 2vh, 2rem);
+            right: clamp(1rem, 2vw, 2rem);
+            z-index: 2;
+            font-family: 'Digital-7 Mono', monospace;
+            font-size: clamp(0.8rem, 2.5vw, 1.2rem);
+            color: rgb(15, 15, 15);
+            text-align: right;
+            line-height: 1.8;
+        }
+        
+        .countdown div {
+            margin-bottom: 0.2rem;
+        }
+        
+        .countdown-label {
+            font-size: clamp(0.5rem, 1.5vw, 0.7rem);
+            opacity: 0.6;
+            margin-left: 0.3rem;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown {
+                font-size: clamp(0.7rem, 3vw, 1rem);
+                line-height: 1.6;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .countdown {
+                font-size: clamp(0.6rem, 4vw, 0.9rem);
+                line-height: 1.5;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div class="logo">schade</div>
+    <div class="countdown" id="countdown">
+        <div><span id="months">0</span><span class="countdown-label">M</span></div>
+        <div><span id="days">0</span><span class="countdown-label">D</span></div>
+        <div><span id="hours">0</span><span class="countdown-label">H</span></div>
+        <div><span id="minutes">0</span><span class="countdown-label">M</span></div>
+        <div><span id="seconds">0</span><span class="countdown-label">S</span></div>
+    </div>
+    <div class="text-container" id="textContainer">
+        <div class="text-line" data-text="BYEN LARMER KUN FOR MIG">BYEN LARMER KUN FOR MIG</div>
+        <div class="text-line" data-text="IK' PÅ SAMME FREKVENS">IK' PÅ SAMME FREKVENS</div>
+        <div class="text-line" data-text="SLETTER MIN HUKOMMELSE // KEMIKALIER">SLETTER MIN HUKOMMELSE // KEMIKALIER</div>
+        <div class="text-line" data-text="1000%">1000%</div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        
+        if (!gl) {
+            console.error('WebGL not supported');
+        }
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Vertex shader
+        const vertexShaderSource = `
+            attribute vec2 a_position;
+            void main() {
+                gl_Position = vec4(a_position, 0.0, 1.0);
+            }
+        `;
+        
+        // Fragment shader - flowy animation
+        const fragmentShaderSource = `
+            precision mediump float;
+            uniform float u_time;
+            uniform vec2 u_resolution;
+            
+            void main() {
+                vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+                vec2 p = uv * 2.0 - 1.0;
+                p.x *= u_resolution.x / u_resolution.y;
+                
+                // Flow field animation
+                float time = u_time * 0.2;
+                
+                // Multiple layers for flowy effect
+                vec2 flow1 = vec2(
+                    sin(p.y * 2.0 + time) * 0.5,
+                    cos(p.x * 1.5 + time * 0.7) * 0.5
+                );
+                
+                vec2 flow2 = vec2(
+                    cos(p.x * 3.0 + time * 0.8) * 0.3,
+                    sin(p.y * 2.5 + time * 0.6) * 0.3
+                );
+                
+                vec2 flow3 = vec2(
+                    sin(p.x * 1.0 + p.y * 1.0 + time) * 0.4,
+                    cos(p.x * 1.0 - p.y * 1.0 + time * 0.9) * 0.4
+                );
+                
+                vec2 combinedFlow = flow1 + flow2 + flow3;
+                
+                // Create flowy patterns
+                float pattern = sin(length(p + combinedFlow * 2.0) * 3.0 - time * 2.0);
+                pattern += sin(length(p * 1.5 + combinedFlow * 1.5) * 4.0 - time * 1.5) * 0.5;
+                pattern += sin(length(p * 0.8 + combinedFlow * 2.5) * 2.5 - time * 2.5) * 0.3;
+                
+                // Normalize and create gradient effect
+                pattern = pattern * 0.5 + 0.5;
+                
+                // Create dark to light gradient similar to image
+                vec2 gradient = vec2(
+                    (p.x + 1.0) * 0.5,
+                    (p.y + 1.0) * 0.5
+                );
+                float diagonalGradient = (gradient.x + gradient.y) * 0.5;
+                
+                // Combine pattern with gradient
+                float final = pattern * 0.3 + diagonalGradient * 0.7;
+                
+                // Add some noise/grain effect (static)
+                float noise = fract(sin(dot(uv * 6.0, vec2(12.9898, 78.233))) * 43758.5453);
+                final += noise * 0.05;
+                
+                // Define color palette
+                vec3 a = vec3(0.45, 0.5, 0.55);
+                vec3 b = vec3(1, 1, 1);
+                vec3 c = vec3(0.7, 0.70, 0.70);
+                vec3 d = vec3(0.05, 0.06, 0.07);
+                
+                // Blend between colors based on final value
+                vec3 color;
+                if (final < 0.33) {
+                    color = mix(d, c, final * 3.0);
+                } else if (final < 0.66) {
+                    color = mix(c, b, (final - 0.33) * 3.0);
+                } else {
+                    color = mix(b, a, (final - 0.66) * 3.0);
+                }
+                
+                gl_FragColor = vec4(color, 1.0);
+            }
+        `;
+        
+        // Compile shader
+        function compileShader(source, type) {
+            const shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+                gl.deleteShader(shader);
+                return null;
+            }
+            
+            return shader;
+        }
+        
+        // Create shader program
+        const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
+        const fragmentShader = compileShader(fragmentShaderSource, gl.FRAGMENT_SHADER);
+        
+        const program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            console.error('Program linking error:', gl.getProgramInfoLog(program));
+        }
+        
+        gl.useProgram(program);
+        
+        // Create quad covering entire screen
+        const positions = new Float32Array([
+            -1, -1,
+             1, -1,
+            -1,  1,
+            -1,  1,
+             1, -1,
+             1,  1,
+        ]);
+        
+        const positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+        
+        const positionLocation = gl.getAttribLocation(program, 'a_position');
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+        
+        // Get uniform locations
+        const timeLocation = gl.getUniformLocation(program, 'u_time');
+        const resolutionLocation = gl.getUniformLocation(program, 'u_resolution');
+        
+        // Animation loop
+        let startTime = Date.now();
+        
+        function animate() {
+            const currentTime = (Date.now() - startTime) / 1000.0;
+            
+            gl.uniform1f(timeLocation, currentTime);
+            gl.uniform2f(resolutionLocation, canvas.width, canvas.height);
+            
+            gl.clearColor(0, 0, 0, 1);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        // Countdown to March 1st
+        function updateCountdown() {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            let targetDate = new Date(currentYear, 2, 1); // March is month 2 (0-indexed)
+            
+            // If March 1st has already passed this year, target next year
+            if (now > targetDate) {
+                targetDate = new Date(currentYear + 1, 2, 1);
+            }
+            
+            const diff = targetDate - now;
+            
+            if (diff <= 0) {
+                // Countdown reached
+                document.getElementById('months').textContent = '0';
+                document.getElementById('days').textContent = '0';
+                document.getElementById('hours').textContent = '0';
+                document.getElementById('minutes').textContent = '0';
+                document.getElementById('seconds').textContent = '0';
+                return;
+            }
+            
+            // Calculate months more accurately
+            let months = targetDate.getMonth() - now.getMonth();
+            let years = targetDate.getFullYear() - now.getFullYear();
+            if (months < 0) {
+                months += 12;
+                years--;
+            }
+            months += years * 12;
+            
+            // Calculate days remaining after months
+            const tempDate = new Date(now);
+            tempDate.setMonth(tempDate.getMonth() + months);
+            const daysDiff = targetDate - tempDate;
+            let days = Math.floor(daysDiff / (1000 * 60 * 60 * 24));
+            
+            // If days is negative, it means we've overshot - adjust months and recalculate
+            if (days < 0) {
+                months = Math.max(0, months - 1);
+                const tempDate2 = new Date(now);
+                tempDate2.setMonth(tempDate2.getMonth() + months);
+                const daysDiff2 = targetDate - tempDate2;
+                days = Math.max(0, Math.floor(daysDiff2 / (1000 * 60 * 60 * 24)));
+            }
+            
+            // Calculate remaining time
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('months').textContent = Math.max(0, months).toString().padStart(2, '0');
+            document.getElementById('days').textContent = Math.max(0, days).toString().padStart(2, '0');
+            document.getElementById('hours').textContent = Math.max(0, hours).toString().padStart(2, '0');
+            document.getElementById('minutes').textContent = Math.max(0, minutes).toString().padStart(2, '0');
+            document.getElementById('seconds').textContent = Math.max(0, seconds).toString().padStart(2, '0');
+        }
+        
+        // Update countdown immediately and then every second
+        updateCountdown();
+        setInterval(updateCountdown, 1000);
+        
+        // Text scramble animation with GSAP
+        const textLines = document.querySelectorAll('.text-line');
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÆØÅ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
+        
+        function scrambleText(element) {
+            const originalText = element.getAttribute('data-text');
+            const letters = element.querySelectorAll('.letter');
+            
+            if (letters.length === 0) {
+                // First time - wrap each character in a span
+                const text = element.textContent;
+                element.innerHTML = '';
+                for (let i = 0; i < text.length; i++) {
+                    const span = document.createElement('span');
+                    span.className = 'letter';
+                    const char = text[i];
+                    // Preserve spaces correctly
+                    if (char === ' ') {
+                        span.textContent = '\u00A0'; // Non-breaking space
+                    } else {
+                        span.textContent = char;
+                    }
+                    element.appendChild(span);
+                }
+                return scrambleText(element);
+            }
+            
+            // Scramble animation
+            letters.forEach((letter, index) => {
+                const originalChar = originalText[index];
+                if (!originalChar) {
+                    return;
+                }
+                
+                // Skip spaces and special characters that shouldn't scramble - but keep them visible
+                const isSpace = originalChar === ' ' || originalChar === '\u00A0';
+                if (isSpace || originalChar === '/') {
+                    // Ensure space is preserved (use non-breaking space for spaces)
+                    if (isSpace) {
+                        letter.textContent = '\u00A0';
+                    } else {
+                        letter.textContent = originalChar;
+                    }
+                    return;
+                }
+                
+                // Create timeline for each letter
+                const tl = gsap.timeline();
+                
+                // Scramble through random characters
+                const scrambleCount = 10 + Math.random() * 10;
+                const randomChars = [];
+                for (let i = 0; i < scrambleCount; i++) {
+                    randomChars.push(chars[Math.floor(Math.random() * chars.length)]);
+                }
+                
+                // Animate through random characters
+                randomChars.forEach((randomChar, i) => {
+                    tl.to(letter, {
+                        duration: 0.05,
+                        onUpdate: function() {
+                            letter.textContent = randomChar;
+                        },
+                        ease: 'none'
+                    });
+                });
+                
+                // Return to original character
+                tl.to(letter, {
+                    duration: 0.1,
+                    onUpdate: function() {
+                        letter.textContent = originalChar;
+                    },
+                    ease: 'power2.out',
+                    delay: index * 0.02
+                });
+            });
+        }
+        
+        // Add click event listener to text container
+        document.getElementById('textContainer').addEventListener('click', function(e) {
+            if (e.target.classList.contains('text-line')) {
+                scrambleText(e.target);
+            } else if (e.target.closest('.text-line')) {
+                scrambleText(e.target.closest('.text-line'));
+            }
+        });
+        
+        // Initialize letters on page load
+        textLines.forEach(line => {
+            const text = line.textContent;
+            line.innerHTML = '';
+            for (let i = 0; i < text.length; i++) {
+                const span = document.createElement('span');
+                span.className = 'letter';
+                const char = text[i];
+                // Preserve spaces correctly
+                if (char === ' ') {
+                    span.textContent = '\u00A0'; // Non-breaking space
+                } else {
+                    span.textContent = char;
+                }
+                line.appendChild(span);
+            }
+        });
+    </script>
+</body>
+</html>
